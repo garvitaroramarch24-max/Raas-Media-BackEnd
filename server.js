@@ -25,19 +25,32 @@ app.use('/api/admin', adminRoutes);
 // Contact form endpoint
 app.post('/api/contact', async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+    const message = typeof req.body.message === 'string' ? req.body.message.trim() : '';
 
     if (!name || !email || !message) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const emailSent = await sendContactEmail(name, email, message);
+    const result = await sendContactEmail(name, email, message);
 
-    if (emailSent) {
-      res.status(200).json({ message: 'Message sent successfully' });
-    } else {
-      res.status(500).json({ message: 'Error sending message' });
+    if (result.ok) {
+      return res.status(200).json({ message: 'Message sent successfully' });
     }
+
+    if (result.code === 'NOT_CONFIGURED') {
+      return res.status(503).json({
+        message:
+          'Contact email is not configured on the server. Add EMAIL_USER and EMAIL_PASSWORD (Gmail App Password) to the backend environment.',
+        code: result.code,
+      });
+    }
+
+    return res.status(500).json({
+      message: 'Could not send your message. Please try again or use the phone / email on this page.',
+      code: result.code || 'SEND_FAILED',
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
