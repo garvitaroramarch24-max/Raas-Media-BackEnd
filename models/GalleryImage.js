@@ -4,7 +4,7 @@ const galleryImageSchema = new mongoose.Schema(
   {
     image: {
       type: String,
-      required: true,
+      default: '',
     },
     alt: {
       type: String,

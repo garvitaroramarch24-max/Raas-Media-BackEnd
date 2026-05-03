@@ -12,27 +12,32 @@ exports.getAllGalleryImages = async (req, res) => {
 
 exports.createGalleryImage = async (req, res) => {
   try {
-    const { alt } = req.body;
-    const raw = req.body.image;
+    const alt = typeof req.body.alt === 'string' ? req.body.alt : '';
+    let imageUrl = '';
 
-    if (typeof raw !== 'string' || !raw.trim()) {
-      return res.status(400).json({ message: 'Image is required' });
-    }
-
-    const image = raw.trim();
-    let imageUrl = image;
-
-    if (image.startsWith('data:')) {
-      const uploadRes = await cloudinary.uploader.upload(image, {
+    if (req.file?.buffer?.length) {
+      const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      const uploadRes = await cloudinary.uploader.upload(dataUri, {
         folder: 'raas-media-gallery',
         resource_type: 'image',
       });
       imageUrl = uploadRes.secure_url;
+    } else {
+      const raw = typeof req.body.image === 'string' ? req.body.image.trim() : '';
+      if (raw.startsWith('data:')) {
+        const uploadRes = await cloudinary.uploader.upload(raw, {
+          folder: 'raas-media-gallery',
+          resource_type: 'image',
+        });
+        imageUrl = uploadRes.secure_url;
+      } else if (/^https?:\/\//i.test(raw)) {
+        imageUrl = raw;
+      }
     }
 
     const doc = new GalleryImage({
       image: imageUrl,
-      alt: alt || '',
+      alt: alt.trim() || '',
     });
 
     await doc.save();

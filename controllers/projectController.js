@@ -27,23 +27,67 @@ exports.getProjectById = async (req, res) => {
 
 
 // Create project (with Cloudinary image upload)
+// exports.createProject = async (req, res) => {
+//   try {
+//     const { title, description, category, image } = req.body;
+
+//     if (!title || !description) {
+//       return res.status(400).json({ message: 'All fields are required' });
+//     }
+
+//     let imageUrl = image;
+
+//     // If image is a base64 string or file upload, upload to Cloudinary
+//     if (image && image.startsWith('data:')) {
+//       const uploadRes = await cloudinary.uploader.upload(image, {
+//         folder: 'raas-media-projects',
+//         resource_type: 'image',
+//       });
+//       imageUrl = uploadRes.secure_url;
+//     }
+
+//     const project = new Project({
+//       title,
+//       description,
+//       category: category || 'live',
+//       image: imageUrl,
+//     });
+
+//     await project.save();
+//     res.status(201).json(project);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
 exports.createProject = async (req, res) => {
   try {
-    const { title, description, category, image } = req.body;
+    const { title, description, category } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    let imageUrl = image;
+    let imageUrl = '';
 
-    // If image is a base64 string or file upload, upload to Cloudinary
-    if (image && image.startsWith('data:')) {
-      const uploadRes = await cloudinary.uploader.upload(image, {
+    // File from multer (memory storage)
+    if (req.file?.buffer?.length) {
+      const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      const uploadRes = await cloudinary.uploader.upload(dataUri, {
         folder: 'raas-media-projects',
         resource_type: 'image',
       });
       imageUrl = uploadRes.secure_url;
+    } else {
+      const raw = typeof req.body.image === 'string' ? req.body.image.trim() : '';
+      if (raw.startsWith('data:')) {
+        const uploadRes = await cloudinary.uploader.upload(raw, {
+          folder: 'raas-media-projects',
+          resource_type: 'image',
+        });
+        imageUrl = uploadRes.secure_url;
+      } else if (/^https?:\/\//i.test(raw)) {
+        imageUrl = raw;
+      }
     }
 
     const project = new Project({
