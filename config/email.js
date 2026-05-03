@@ -11,8 +11,9 @@ const transporter = nodemailer.createTransport({
 const sendContactEmail = async (name, email, message) => {
   try {
     const adminMail =await transporter.sendMail({
-      from:email,
+      from:`"Raas Media" <${process.env.EMAIL_USER}>`,
       to: process.env.EMAIL_USER,
+      replyTo: email,
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <h2>New Contact Form Submission</h2>
@@ -26,7 +27,8 @@ const sendContactEmail = async (name, email, message) => {
 
     // Send confirmation to user
     const userMail= await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      // from: process.env.EMAIL_USER,
+      from: `"Raas Media" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Thank you for contacting Raas Media',
       html: `
